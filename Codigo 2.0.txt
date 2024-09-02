@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro de Vehículos</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        form {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        input, select, button {
+            margin-top: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        button {
+            background-color: #28a745;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #218838;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+</head>
+<body>
+    <h1>Registro de Entrada y Salida de Vehículos</h1>
+
+    <form id="vehicleForm">
+        <label for="entryExit">Entrada/Salida:</label>
+        <select id="entryExit" required>
+            <option value="">Seleccione...</option>
+            <option value="Entrada">Entrada</option>
+            <option value="Salida">Salida</option>
+        </select>
+        <br>
+
+        <label for="driverName">Nombre del Conductor:</label>
+        <input type="text" id="driverName" required>
+        <br>
+
+        <label for="vehicleRoute">Ruta del Vehículo:</label>
+        <input type="text" id="vehicleRoute" required>
+        <br>
+
+        <label for="seal">Sello:</label>
+        <input type="text" id="seal" required>
+        <br>
+
+        <label for="vehiclePlate">Placa del Vehículo:</label>
+        <input type="text" id="vehiclePlate" required>
+        <br>
+
+        <label for="protocolNumber">Número de Protocolo:</label>
+        <input type="text" id="protocolNumber" required>
+        <br>
+
+        <button type="submit">Agregar Registro</button>
+    </form>
+
+    <div>
+        <label for="searchProtocol">Buscar por Número de Protocolo:</label>
+        <input type="text" id="searchProtocol">
+        <button id="searchBtn">Buscar</button>
+    </div>
+
+    <table id="recordsTable">
+        <thead>
+            <tr>
+                <th>Entrada/Salida</th>
+                <th>Fecha de Entrada</th>
+                <th>Hora de Entrada</th>
+                <th>Sello de Entrada</th>
+                <th>Fecha de Salida</th>
+                <th>Hora de Salida</th>
+                <th>Sello de Salida</th>
+                <th>Nombre del Conductor</th>
+                <th>Ruta del Vehículo</th>
+                <th>Placa del Vehículo</th>
+                <th>Número de Protocolo</th>
+            </tr>
+        </thead>
+        <tbody></tbody>
+    </table>
+
+    <button id="exportBtn">Exportar a Excel</button>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        function formatDate(date) {
+            const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+            return new Intl.DateTimeFormat('es-CO', options).format(date);
+        }
+
+        function formatTime(date) {
+            const options = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false };
+            return new Intl.DateTimeFormat('es-CO', options).format(date);
+        }
+
+        function getColombianDateTime() {
+            const now = new Date();
+            const colombianOffset = -5; // Zona horaria de Colombia es UTC-5
+            const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const colombianTime = new Date(utcTime + (colombianOffset * 3600000));
+            return {
+                date: formatDate(colombianTime),
+                time: formatTime(colombianTime)
+            };
+        }
+
+        document.getElementById('vehicleForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const entryExit = document.getElementById('entryExit').value;
+            const seal = document.getElementById('seal').value;
+            const driverName = document.getElementById('driverName').value;
+            const vehicleRoute = document.getElementById('vehicleRoute').value;
+            const vehiclePlate = document.getElementById('vehiclePlate').value;
+            const protocolNumber = document.getElementById('protocolNumber').value;
+
+            const { date, time } = getColombianDateTime();
+
+            // Validar que los campos de sello y protocolo no estén vacíos
+            if (!seal || !protocolNumber) {
+                alert('Por favor, complete los campos requeridos (Sello, Número de Protocolo).');
+                return;
+            }
+
+            const tableBody = document.querySelector('#recordsTable tbody');
+            let rowFound = false;
+
+            // Buscar la fila existente con el mismo número de protocolo
+            for (let row of tableBody.rows) {
+                if (row.cells[10].textContent === protocolNumber) {
+                    rowFound = true;
+                    if (entryExit === "Entrada") {
+                        // Actualizar la información de entrada
+                        row.cells[1].textContent = date;
+                        row.cells[2].textContent = time;
+                        row.cells[3].textContent = seal;
+                    } else if (entryExit === "Salida") {
+                        // Actualizar la información de salida
+                        row.cells[4].textContent = date;
+                        row.cells[5].textContent = time;
+                        row.cells[6].textContent = seal;
+                    }
+                    break;
+                }
+            }
+
+            // Si no se encontró una fila, agregar una nueva
+            if (!rowFound) {
+                const row = tableBody.insertRow();
+                row.insertCell().textContent = entryExit === "Entrada" ? entryExit : "";
+                row.insertCell().textContent = entryExit === "Entrada" ? date : "";
+                row.insertCell().textContent = entryExit === "Entrada" ? time : "";
+                row.insertCell().textContent = entryExit === "Entrada" ? seal : "";
+                row.insertCell().textContent = entryExit === "Salida" ? date : "";
+                row.insertCell().textContent = entryExit === "Salida" ? time : "";
+                row.insertCell().textContent = entryExit === "Salida" ? seal : "";
+                row.insertCell().textContent = driverName;
+                row.insertCell().textContent = vehicleRoute;
+                row.insertCell().textContent = vehiclePlate;
+                row.insertCell().textContent = protocolNumber;
+            }
+
+            document.getElementById('vehicleForm').reset();
+        });
+
+        document.getElementById('searchBtn').addEventListener('click', function() {
+            const searchProtocol = document.getElementById('searchProtocol').value.trim();
+            const tableBody = document.querySelector('#recordsTable tbody');
+
+            // Mostrar todos los registros
+            Array.from(tableBody.rows).forEach(row => {
+                row.style.display = ''; // Mostrar todas las filas
+            });
+
+            if (searchProtocol) {
+                // Filtrar los registros que coincidan con el número de protocolo ingresado
+                Array.from(tableBody.rows).forEach(row => {
+                    if (row.cells[10].textContent !== searchProtocol) {
+                        row.style.display = 'none'; // Ocultar las filas que no coinciden
+                    }
+                });
+            }
+        });
+
+        document.getElementById('exportBtn').addEventListener('click', function() {
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.table_to_sheet(document.getElementById('recordsTable'));
+            XLSX.utils.book_append_sheet(wb, ws, "Registros");
+
+            XLSX.writeFile(wb, "registros_vehiculos.xlsx");
+        });
+    </script>
+</body>
+</html>
